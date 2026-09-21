@@ -1,14 +1,26 @@
 # TTB Label Verification Assistant
 
 **Author:** Aqib Rahim
+**Live deployment:** https://ttb-label-verification-six.vercel.app/
 
-*This repository is a fork of the official take-home instructions repo. The original assignment brief — stakeholder interview notes, technical requirements, and deliverables — is preserved unchanged at [ASSIGNMENT.md](ASSIGNMENT.md). [DECISIONS.md](DECISIONS.md) maps specific stakeholder feedback to the exact code that addresses it.*
+*This repository is a fork of the official take-home instructions repo. The original assignment brief — stakeholder interview notes and technical requirements — is preserved unchanged at [ASSIGNMENT.md](ASSIGNMENT.md). [DECISIONS.md](DECISIONS.md) maps specific stakeholder feedback to the exact code that addresses it.*
 
 A tool that checks whether an alcohol label photo matches the corresponding COLA application record — brand name, class/type, alcohol content, net contents, and the mandatory Government Warning statement — and flags mismatches for agent review. It's a standalone proof-of-concept and does not integrate with COLA itself.
 
-The brief left the tech stack open ("free to use any programming languages, frameworks, or libraries"), so I picked a stack that reflects how I'd actually build a small internal tool for a team like this: a React frontend, a small Express API, and the label-reading step done server-side so an API credential never has to sit in the browser.
+The brief left the tech stack open ("free to use any programming languages, frameworks, or libraries"), so I picked a stack that reflects how I'd actually build a small internal tool for a team like this: a React frontend, a small Express API, and the label-reading step done server-side so an API credential never has to sit in the browser. Every decision below traces back to something a specific stakeholder said in the interview notes — see DECISIONS.md for the direct mapping.
 
-**Live deployment:** https://ttb-label-verification-six.vercel.app/
+## Contents
+
+- [Screenshots](#screenshots)
+- [Quick start](#quick-start)
+- [Project structure](#project-structure)
+- [Approach](#approach)
+- [Full setup](#full-setup)
+- [Deploying it](#deploying-it)
+- [Assumptions](#assumptions)
+- [Known limitations / trade-offs](#known-limitations--trade-offs)
+- [Tools used](#tools-used)
+- [Hardening notes](#hardening-notes)
 
 ## Screenshots
 
@@ -24,107 +36,118 @@ Batch mode — one row per label, each with its own fields and photo, processed 
 
 ![Batch check view](docs/screenshots/04-batch-check.png)
 
-## Architecture
+## Quick start
+
+Fastest way to see it work, no API key required:
+
+```bash
+git clone https://github.com/aqibrahim/ttb-label-verification-submission.git
+cd ttb-label-verification-submission
+
+cd server && npm install && npm start &     # http://localhost:4000, demo mode (no key needed)
+cd ../client && npm install && npm run dev  # http://localhost:5173
+```
+
+Open the printed client URL, fill in an application record (or leave it — the demo response is canned either way), upload any image, click **Verify Label**. A yellow banner marks the result as demo data. To get real label-reading instead of the canned demo, see [Full setup](#full-setup) below.
+
+Or skip local setup entirely and use the live deployment (real model, not demo mode): **https://ttb-label-verification-six.vercel.app/**
+
+## Project structure
 
 ```
-client/   React + Vite + Tailwind — the UI agents interact with
-server/   Express API — receives an image + application fields,
-          calls a vision-language model to read the label, compares
-          the result to the application record, returns a verdict
-demo/     A single-file, no-build version of the same idea, useful
-          for a five-second look without installing anything
+.
+├── ASSIGNMENT.md          the original take-home brief, unmodified
+├── DECISIONS.md           stakeholder feedback → specific code, mapped directly
+├── client/                React + Vite + Tailwind frontend
+│   └── src/
+│       ├── App.jsx            tab switching, page shell
+│       ├── api.js             fetch wrapper to the server
+│       └── components/        SingleCheck, BatchCheck, Stamp, ChecklistRow
+├── server/                Express API
+│   ├── Dockerfile
+│   └── src/
+│       ├── index.js            app entry, security middleware
+│       ├── routes/verify.js    POST /api/verify
+│       ├── services/
+│       │   ├── modelClient.js       model call: retries, response validation, demo mode
+│       │   └── imagePreprocess.js   resize/orient/normalize before sending
+│       └── utils/
+│           ├── compare.js           the match/review/mismatch decision logic
+│           └── validation.js        request + model-response schemas (Zod)
+├── eval/                  evaluation harness: extraction & verdict accuracy
+│   ├── generate_fixtures.py    builds the synthetic label images
+│   ├── fixtures/                8 labels + ground truth (fixtures.json)
+│   └── run_eval.mjs
+├── demo/index.html        single-file, no-build version — calls the model provider directly from the browser, so it only runs where a credential is already available to that endpoint (not a plain static file)
+├── docs/screenshots/      the images used above
+└── .github/workflows/     CI: audit, lint, test, build
 ```
 
-**Why split client/server instead of one static page:** the original demo (still in `demo/`) called the model provider directly from the browser, which only works if the browser already has a credential injected for it — fine for a five-minute look, not something you'd actually deploy. Moving the model call to the server means:
-- the API credential lives in an environment variable on the server, never in client code
-- the comparison logic runs in one place with one set of unit tests, instead of being duplicated or trusted to happen client-side
-- the frontend only ever talks to `POST /api/verify`, so it doesn't need to know or care which model provider is behind that endpoint
+Every `*.test.js` file next to the code it tests (`server/src/**`) is a real, currently-passing unit test — 29 total, see [Tools used](#tools-used).
 
-## How it decides match / review / mismatch
+## Approach
 
-Rather than a single pass/fail, each field gets one of three verdicts:
+**Architecture.** `client/` is the UI. `server/` receives an image plus the application's stated fields, calls a vision-language model to read the label, and runs the comparison locally before responding. The original single-file demo (`demo/`) called the model directly from the browser, which only works where a credential is already injected for it. Moving that call server-side means the credential never reaches client code, the comparison logic exists in exactly one place with one set of tests instead of being duplicated, and the frontend only ever talks to `POST /api/verify` — it doesn't need to know which model provider is behind it.
 
-- **Match** — application and label agree. Case and punctuation differences (`STONE'S THROW` vs `Stone's Throw`) are normalized and still counted as a match.
-- **Needs review** — close, but ambiguous enough a human should look (e.g. class/type wording differs, an image quality issue was flagged, or the Government Warning header formatting looks off).
+**The three-way verdict.** Every field gets **match**, **needs review**, or **mismatch** — never a bare pass/fail:
+- **Match** — application and label agree; case/punctuation-only differences (`STONE'S THROW` vs `Stone's Throw`) still count as a match.
+- **Needs review** — close, but ambiguous enough a human should look (class/type wording differs, an image-quality issue was flagged, warning header formatting looks off).
 - **Mismatch** — application and label clearly disagree, or a required field wasn't detected at all.
 
-The Government Warning is the one field with no fuzzy matching: it has to match **word-for-word**, and the `GOVERNMENT WARNING:` header has to be all-caps. That's a common place people try to soften or bury the statement, so it's treated as strict by design.
+The Government Warning is the one field with **no fuzzy matching**: it must match word-for-word, and the `GOVERNMENT WARNING:` header must be all-caps — a common place people try to soften or bury the statement.
 
-## Model reliability
+**Model reliability.** A model call is the one non-deterministic part of the pipeline, so it's treated differently from the rest of the code:
+- The response is validated against a Zod schema, not just `JSON.parse`'d — a model can return syntactically valid JSON with the wrong shape (a string where a boolean was expected), and that's now caught rather than silently trusted.
+- Transient failures (rate limits, 5xx, malformed/invalid JSON) retry up to 3 times with exponential backoff; genuine bad requests (4xx) or missing config fail immediately instead of wasting retries on input that won't change.
+- Images are auto-oriented (EXIF), downscaled past the model's useful resolution, and normalized to JPEG before sending — cuts upload size/cost with no known accuracy trade-off.
+- `eval/` runs the real pipeline against 8 synthetic label images with known ground truth and reports **extraction accuracy** and **verdict accuracy** separately, since a wrong answer can come from the model misreading the label or from the comparison logic being wrong — different bugs, different fixes. See `eval/README.md`.
 
-A vision model call is the one part of this pipeline that isn't fully
-deterministic, so it gets treated differently from the rest of the code:
-
-- **The response is schema-validated, not just JSON-parsed.** `JSON.parse`
-  succeeding doesn't mean the shape is right — a model can return a string
-  where a boolean was expected, or drop a field. `server/src/utils/validation.js`
-  defines the expected shape with Zod; anything that doesn't match it is
-  treated as a failure, not silently passed through to the comparison logic.
-- **Transient failures are retried; permanent ones aren't.** Rate limits
-  (429), server errors (5xx), and malformed/invalid responses are retried
-  up to 3 attempts with exponential backoff, since a fresh generation
-  often just works. A bad request (4xx) or missing configuration fails
-  immediately, since retrying identical bad input wastes time and money.
-  See `server/src/services/modelClient.js` and its tests for the exact
-  behavior.
-- **Images are preprocessed before they're sent.** `server/src/services/imagePreprocess.js`
-  auto-orients (using EXIF data, which matters for phone photos), downscales
-  anything larger than the model's useful resolution, and normalizes to
-  JPEG — cutting upload size and cost without a known accuracy trade-off.
-- **There's a real evaluation harness, not just unit tests.** `eval/` runs
-  the pipeline against a small set of synthetic label images with known
-  ground truth and reports extraction accuracy and verdict accuracy
-  separately, since they fail for different reasons. See `eval/README.md`.
-  The unit tests under `server/src/` mock the model out on purpose to test
-  logic in isolation; the eval harness is what actually tells you whether
-  the model reads labels correctly.
-
-## Setup
+## Full setup
 
 Requires Node.js 18+ (for native `fetch` and the built-in test runner).
 
-### 1. Server
+### Server
 
 ```bash
 cd server
 npm install
 cp .env.example .env
-# edit .env and set MODEL_API_URL / MODEL_API_KEY / MODEL_NAME
-npm start        # runs on http://localhost:4000
+# edit .env: set MODEL_API_URL / MODEL_API_KEY / MODEL_NAME for real extraction
+npm start        # http://localhost:4000
+npm test         # 29 unit tests
 ```
 
-**No API key yet?** The server runs anyway - without `MODEL_API_KEY` configured, it serves a clearly-labeled canned demo response instead of failing, so the full UI (including a real result screen) works immediately after cloning. The response and the UI both flag it explicitly as demo data. See `server/src/services/modelClient.js` (`isDemoMode`).
+Without a key configured, the server runs in **demo mode**: it returns a clearly-labeled canned response instead of failing, so the full UI works immediately after cloning (see `isDemoMode` in `server/src/services/modelClient.js`).
 
-Run the unit tests for the comparison logic:
-```bash
-npm test
-```
-
-**Docker** (server only):
+**Docker**, as an alternative to a local Node install:
 ```bash
 cd server
 docker build -t label-verify-server .
 docker run -p 4000:4000 --env-file .env label-verify-server
 ```
 
-### 2. Client
+### Client
 
 ```bash
 cd client
 npm install
-npm run dev      # runs on http://localhost:5173, proxies /api to :4000
+npm run dev      # http://localhost:5173, proxies /api to :4000
 ```
 
-Open the printed local URL, fill out an application record, upload a label photo, and click **Verify Label**.
+### Evaluation harness (optional, needs a real model key)
 
-### 3. Quick look without installing anything
-
-`demo/index.html` is a self-contained version of the same UI and comparison logic in a single file, useful for a fast preview. It calls the model provider directly from the browser, so it only runs somewhere that already provides a credential to that endpoint (it does not work as a plain static file with no backend).
+```bash
+cd eval
+npm install
+npm run run      # reports extraction & verdict accuracy against 8 fixtures
+```
 
 ## Deploying it
 
-- **Server:** any Node host works (Render, Railway, Fly.io, a small VPS). Set the three `MODEL_*` environment variables and `PORT` there — never commit a real `.env`.
-- **Client:** `npm run build` in `client/` produces a static `dist/` folder deployable to Vercel, Netlify, GitHub Pages, or any static host. Point `VITE_API_BASE` at the deployed server's URL (e.g. `https://your-api.onrender.com/api`) at build time.
+- **Server:** any Node host works (Render, Railway, Fly.io, a VPS, or the Dockerfile above). Set the three `MODEL_*` environment variables and `PORT` — never commit a real `.env`.
+- **Client:** `npm run build` in `client/` produces a static `dist/` deployable to Vercel, Netlify, GitHub Pages, or any static host. Point `VITE_API_BASE` at the deployed server's URL (e.g. `https://your-api.onrender.com/api`) at build time.
+
+The live deployment linked at the top of this file follows exactly this split: server on Render, client on Vercel.
 
 ## Assumptions
 
@@ -138,18 +161,18 @@ Open the printed local URL, fill out an application record, upload a label photo
 - **Image quality** (angled, glared, blurry photos) is flagged by the model as an "image quality issue" and surfaced as "needs review," but the tool doesn't attempt to correct or enhance the image — a reasonable stretch goal, not core scope for this pass.
 - **Class/type wording differences** always route to "needs review" rather than being auto-passed or auto-failed, since judging whether two designations are legally equivalent is exactly the kind of call that should stay with a human.
 - Not integrated with COLA or any other system — by design, this is a standalone proof-of-concept.
-- Test coverage is currently limited to the comparison logic (`server/src/utils/compare.test.js`), which is the part with the most business logic and the easiest to get subtly wrong. The Express routes and React components are covered by manual testing rather than automated tests, given the time box — component/integration tests would be the next thing I'd add.
+- Automated test coverage is at the logic layer (comparison, validation, model-client retry behavior, image preprocessing — 29 tests). The Express routes and React components are covered by manual testing rather than automated tests, given the time box; component/integration tests would be the next addition.
 - Batch mode processes labels with limited concurrency (3 at a time) rather than fully in parallel, to keep behavior predictable if a batch is large — worth revisiting with real load numbers.
 
 ## Tools used
 
 - **Client:** React 18, Vite, Tailwind CSS
 - **Server:** Node.js, Express, Multer (file uploads), Zod (request + model-response validation), Helmet (security headers), express-rate-limit (abuse protection), Sharp (image preprocessing)
-- **Testing:** Node's built-in test runner (`node --test`) across comparison logic, validation, retry behavior (with a mocked model), and image preprocessing — 28 tests, no extra test framework dependency for something this size
-- **Evaluation:** a small standalone harness (`eval/`) that runs the real pipeline against synthetic label fixtures with known ground truth and reports extraction/verdict accuracy separately
+- **Testing:** Node's built-in test runner (`node --test`) across comparison logic, validation, retry/demo-mode behavior (with a mocked model), and image preprocessing — 29 tests, no extra test framework dependency for something this size
+- **Evaluation:** a standalone harness (`eval/`) running the real pipeline against synthetic label fixtures with known ground truth, reporting extraction/verdict accuracy separately
 - **Linting/formatting:** ESLint (flat config) in both `client/` and `server/`, shared Prettier config at the repo root
-- **CI:** GitHub Actions (`.github/workflows/ci.yml`) runs `npm audit` (fails on high/critical), lint, and tests on the server, and the same audit + lint + build on the client, on every push and pull request
-- **Containerization:** `server/Dockerfile` for a dependency-free way to run the API (needs Docker only, no local Node install)
+- **CI:** GitHub Actions (`.github/workflows/ci.yml`) — `npm audit` (fails the build on high/critical), lint, and tests on the server; audit, lint, and build on the client — on every push and pull request
+- **Containerization:** `server/Dockerfile`, so the API runs with just Docker, no local Node install required
 - **Model provider:** a hosted vision-language model, called once per label image, configured entirely through environment variables (`MODEL_API_URL`, `MODEL_API_KEY`, `MODEL_NAME`) so the provider can be swapped without touching application code
 
 ## Hardening notes
@@ -157,4 +180,5 @@ Open the printed local URL, fill out an application record, upload a label photo
 - Requests to `/api/verify` are validated with a Zod schema (field length limits) before anything is sent to the model, and the uploaded file's MIME type is checked against an allow-list (JPEG/PNG/WEBP).
 - The verify endpoint is rate-limited (60 requests per 15 minutes per IP by default) since each request costs real model quota/money — see `server/src/index.js` to adjust for expected traffic.
 - Helmet sets standard security headers on all responses.
+- `npm audit --audit-level=high` runs in CI on both client and server; a real vulnerability caught this way (sharp, vite) was fixed by dependency upgrade, not suppressed.
 - None of this replaces real authentication/authorization for a production deployment — there's no login or per-agent identity in this prototype, which would be a required addition before handling real applications.
