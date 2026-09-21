@@ -78,7 +78,6 @@ Or skip local setup entirely and use the live deployment (real model, not demo m
 │   ├── generate_fixtures.py    builds the synthetic label images
 │   ├── fixtures/                8 labels + ground truth (fixtures.json)
 │   └── run_eval.mjs
-├── demo/index.html        single-file, no-build version — calls the model provider directly from the browser, so it only runs where a credential is already available to that endpoint (not a plain static file)
 ├── docs/screenshots/      the images used above
 └── .github/workflows/     CI: audit, lint, test, build
 ```
@@ -87,7 +86,7 @@ Every `*.test.js` file next to the code it tests (`server/src/**`) is a real, cu
 
 ## Approach
 
-**Architecture.** `client/` is the UI. `server/` receives an image plus the application's stated fields, calls a vision-language model to read the label, and runs the comparison locally before responding. The original single-file demo (`demo/`) called the model directly from the browser, which only works where a credential is already injected for it. Moving that call server-side means the credential never reaches client code, the comparison logic exists in exactly one place with one set of tests instead of being duplicated, and the frontend only ever talks to `POST /api/verify` — it doesn't need to know which model provider is behind it.
+**Architecture.** `client/` is the UI. `server/` receives an image plus the application's stated fields, calls a vision-language model to read the label, and runs the comparison locally before responding. Doing the model call server-side (rather than from the browser) means the credential never reaches client code, the comparison logic exists in exactly one place with one set of tests instead of being duplicated, and the frontend only ever talks to `POST /api/verify` — it doesn't need to know which model provider is behind it.
 
 **The three-way verdict.** Every field gets **match**, **needs review**, or **mismatch** — never a bare pass/fail:
 - **Match** — application and label agree; case/punctuation-only differences (`STONE'S THROW` vs `Stone's Throw`) still count as a match.
