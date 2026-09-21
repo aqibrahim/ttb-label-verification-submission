@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes stamp-in {
+  from {
+    transform: rotate(-8deg) scale(0.4);
+    opacity: 0;
+  }
+  to {
+    transform: rotate(-8deg) scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-stamp-in {
+  animation: stamp-in 0.35s ease-out forwards;
+}

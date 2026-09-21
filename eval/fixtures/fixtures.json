@@ -1,0 +1,210 @@
+[
+  {
+    "id": "01_perfect_match",
+    "image": "labels/01_perfect_match.jpg",
+    "true_label_text": {
+      "brand_name": "OLD TOM DISTILLERY",
+      "class_type": "Kentucky Straight Bourbon Whiskey",
+      "alcohol_content_raw": "45% Alc./Vol. (90 Proof)",
+      "net_contents_raw": "750 mL",
+      "government_warning_text": "GOVERNMENT WARNING: (1) According to the Surgeon General, women should not drink alcoholic beverages during pregnancy because of the risk of birth defects. (2) Consumption of alcoholic beverages impairs your ability to drive a car or operate machinery, and may cause health problems."
+    },
+    "application": {
+      "brand": "Old Tom Distillery",
+      "classType": "Kentucky Straight Bourbon Whiskey",
+      "abv": "45%",
+      "net": "750 mL",
+      "warning": "GOVERNMENT WARNING: (1) According to the Surgeon General, women should not drink alcoholic beverages during pregnancy because of the risk of birth defects. (2) Consumption of alcoholic beverages impairs your ability to drive a car or operate machinery, and may cause health problems."
+    },
+    "expected_verdicts": {
+      "Brand Name": "pass",
+      "Class / Type": "pass",
+      "Alcohol Content": "pass",
+      "Net Contents": "pass",
+      "Government Warning": "pass"
+    },
+    "notes": "Brand case differs from the label (Title Case vs ALL CAPS) but should still pass - this is the exact Dave's-feedback case."
+  },
+  {
+    "id": "02_brand_mismatch",
+    "image": "labels/02_brand_mismatch.jpg",
+    "true_label_text": {
+      "brand_name": "YOUNG TOM DISTILLERY",
+      "class_type": "Kentucky Straight Bourbon Whiskey",
+      "alcohol_content_raw": "45% Alc./Vol.",
+      "net_contents_raw": "750 mL",
+      "government_warning_text": "GOVERNMENT WARNING: (1) According to the Surgeon General, women should not drink alcoholic beverages during pregnancy because of the risk of birth defects. (2) Consumption of alcoholic beverages impairs your ability to drive a car or operate machinery, and may cause health problems."
+    },
+    "application": {
+      "brand": "Old Tom Distillery",
+      "classType": "Kentucky Straight Bourbon Whiskey",
+      "abv": "45%",
+      "net": "750 mL",
+      "warning": "GOVERNMENT WARNING: (1) According to the Surgeon General, women should not drink alcoholic beverages during pregnancy because of the risk of birth defects. (2) Consumption of alcoholic beverages impairs your ability to drive a car or operate machinery, and may cause health problems."
+    },
+    "expected_verdicts": {
+      "Brand Name": "fail",
+      "Class / Type": "pass",
+      "Alcohol Content": "pass",
+      "Net Contents": "pass",
+      "Government Warning": "pass"
+    },
+    "notes": "A genuine brand name mismatch, not just a casing difference."
+  },
+  {
+    "id": "03_abv_mismatch",
+    "image": "labels/03_abv_mismatch.jpg",
+    "true_label_text": {
+      "brand_name": "RIVERBEND DISTILLERY",
+      "class_type": "American Blended Whiskey",
+      "alcohol_content_raw": "40% Alc./Vol.",
+      "net_contents_raw": "750 mL",
+      "government_warning_text": "GOVERNMENT WARNING: (1) According to the Surgeon General, women should not drink alcoholic beverages during pregnancy because of the risk of birth defects. (2) Consumption of alcoholic beverages impairs your ability to drive a car or operate machinery, and may cause health problems."
+    },
+    "application": {
+      "brand": "Riverbend Distillery",
+      "classType": "American Blended Whiskey",
+      "abv": "45%",
+      "net": "750 mL",
+      "warning": "GOVERNMENT WARNING: (1) According to the Surgeon General, women should not drink alcoholic beverages during pregnancy because of the risk of birth defects. (2) Consumption of alcoholic beverages impairs your ability to drive a car or operate machinery, and may cause health problems."
+    },
+    "expected_verdicts": {
+      "Brand Name": "pass",
+      "Class / Type": "pass",
+      "Alcohol Content": "fail",
+      "Net Contents": "pass",
+      "Government Warning": "pass"
+    },
+    "notes": "Application says 45%, label says 40% - a real compliance-relevant mismatch."
+  },
+  {
+    "id": "04_net_contents_units",
+    "image": "labels/04_net_contents_units.jpg",
+    "true_label_text": {
+      "brand_name": "HARBOR LIGHT DISTILLERS",
+      "class_type": "Vodka",
+      "alcohol_content_raw": "40% Alc./Vol.",
+      "net_contents_raw": "0.75 L",
+      "government_warning_text": "GOVERNMENT WARNING: (1) According to the Surgeon General, women should not drink alcoholic beverages during pregnancy because of the risk of birth defects. (2) Consumption of alcoholic beverages impairs your ability to drive a car or operate machinery, and may cause health problems."
+    },
+    "application": {
+      "brand": "Harbor Light Distillers",
+      "classType": "Vodka",
+      "abv": "40%",
+      "net": "750 mL",
+      "warning": "GOVERNMENT WARNING: (1) According to the Surgeon General, women should not drink alcoholic beverages during pregnancy because of the risk of birth defects. (2) Consumption of alcoholic beverages impairs your ability to drive a car or operate machinery, and may cause health problems."
+    },
+    "expected_verdicts": {
+      "Brand Name": "pass",
+      "Class / Type": "pass",
+      "Alcohol Content": "pass",
+      "Net Contents": "pass",
+      "Government Warning": "pass"
+    },
+    "notes": "Label uses 0.75 L, application uses 750 mL - should match via unit conversion."
+  },
+  {
+    "id": "05_warning_wording_altered",
+    "image": "labels/05_warning_wording_altered.jpg",
+    "true_label_text": {
+      "brand_name": "SILVER CREEK CELLARS",
+      "class_type": "Cabernet Sauvignon",
+      "alcohol_content_raw": "13.5% Alc./Vol.",
+      "net_contents_raw": "750 mL",
+      "government_warning_text": "GOVERNMENT WARNING: (1) According to the Surgeon General, women should not drink alcoholic beverages during pregnancy because of the risk of birth defects. (2) Consumption of alcoholic beverages may affect your ability to drive or operate machinery, and may cause health problems."
+    },
+    "application": {
+      "brand": "Silver Creek Cellars",
+      "classType": "Cabernet Sauvignon",
+      "abv": "13.5%",
+      "net": "750 mL",
+      "warning": "GOVERNMENT WARNING: (1) According to the Surgeon General, women should not drink alcoholic beverages during pregnancy because of the risk of birth defects. (2) Consumption of alcoholic beverages impairs your ability to drive a car or operate machinery, and may cause health problems."
+    },
+    "expected_verdicts": {
+      "Brand Name": "pass",
+      "Class / Type": "pass",
+      "Alcohol Content": "pass",
+      "Net Contents": "pass",
+      "Government Warning": "fail"
+    },
+    "notes": "Warning wording is softened/altered - must fail even though it's close, since no fuzzy matching is allowed on this field."
+  },
+  {
+    "id": "06_warning_header_not_caps",
+    "image": "labels/06_warning_header_not_caps.jpg",
+    "true_label_text": {
+      "brand_name": "SILVER CREEK CELLARS",
+      "class_type": "Cabernet Sauvignon",
+      "alcohol_content_raw": "13.5% Alc./Vol.",
+      "net_contents_raw": "750 mL",
+      "government_warning_text": "GOVERNMENT WARNING: (1) According to the Surgeon General, women should not drink alcoholic beverages during pregnancy because of the risk of birth defects. (2) Consumption of alcoholic beverages impairs your ability to drive a car or operate machinery, and may cause health problems."
+    },
+    "application": {
+      "brand": "Silver Creek Cellars",
+      "classType": "Cabernet Sauvignon",
+      "abv": "13.5%",
+      "net": "750 mL",
+      "warning": "GOVERNMENT WARNING: (1) According to the Surgeon General, women should not drink alcoholic beverages during pregnancy because of the risk of birth defects. (2) Consumption of alcoholic beverages impairs your ability to drive a car or operate machinery, and may cause health problems."
+    },
+    "expected_verdicts": {
+      "Brand Name": "pass",
+      "Class / Type": "pass",
+      "Alcohol Content": "pass",
+      "Net Contents": "pass",
+      "Government Warning": "review"
+    },
+    "notes": "Wording matches exactly but the header isn't rendered in all caps - expected to be flagged for review rather than an automatic fail."
+  },
+  {
+    "id": "07_class_type_variant",
+    "image": "labels/07_class_type_variant.jpg",
+    "true_label_text": {
+      "brand_name": "MAPLE HOLLOW BREWING",
+      "class_type": "India Pale Ale",
+      "alcohol_content_raw": "6.2% Alc./Vol.",
+      "net_contents_raw": "12 fl oz",
+      "government_warning_text": "GOVERNMENT WARNING: (1) According to the Surgeon General, women should not drink alcoholic beverages during pregnancy because of the risk of birth defects. (2) Consumption of alcoholic beverages impairs your ability to drive a car or operate machinery, and may cause health problems."
+    },
+    "application": {
+      "brand": "Maple Hollow Brewing",
+      "classType": "IPA",
+      "abv": "6.2%",
+      "net": "12 fl oz",
+      "warning": "GOVERNMENT WARNING: (1) According to the Surgeon General, women should not drink alcoholic beverages during pregnancy because of the risk of birth defects. (2) Consumption of alcoholic beverages impairs your ability to drive a car or operate machinery, and may cause health problems."
+    },
+    "expected_verdicts": {
+      "Brand Name": "pass",
+      "Class / Type": "review",
+      "Alcohol Content": "pass",
+      "Net Contents": "pass",
+      "Government Warning": "pass"
+    },
+    "notes": "Application says 'IPA', label spells out 'India Pale Ale' - a wording difference that should route to review rather than being auto-decided."
+  },
+  {
+    "id": "08_rotated_photo",
+    "image": "labels/08_rotated_photo.jpg",
+    "true_label_text": {
+      "brand_name": "PINE RIDGE MEADERY",
+      "class_type": "Traditional Mead",
+      "alcohol_content_raw": "12% Alc./Vol.",
+      "net_contents_raw": "750 mL",
+      "government_warning_text": "GOVERNMENT WARNING: (1) According to the Surgeon General, women should not drink alcoholic beverages during pregnancy because of the risk of birth defects. (2) Consumption of alcoholic beverages impairs your ability to drive a car or operate machinery, and may cause health problems."
+    },
+    "application": {
+      "brand": "Pine Ridge Meadery",
+      "classType": "Traditional Mead",
+      "abv": "12%",
+      "net": "750 mL",
+      "warning": "GOVERNMENT WARNING: (1) According to the Surgeon General, women should not drink alcoholic beverages during pregnancy because of the risk of birth defects. (2) Consumption of alcoholic beverages impairs your ability to drive a car or operate machinery, and may cause health problems."
+    },
+    "expected_verdicts": {
+      "Brand Name": "pass",
+      "Class / Type": "pass",
+      "Alcohol Content": "pass",
+      "Net Contents": "pass",
+      "Government Warning": "pass"
+    },
+    "notes": "Photo rotated 8 degrees, simulating an off-angle phone photo. Extraction should still succeed; this fixture is about robustness, not a designed failure."
+  }
+]

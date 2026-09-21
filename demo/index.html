@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TTB Label Verification Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #1B2A4A;
+    --navy-light: #2C4066;
+    --parchment: #F7F5F0;
+    --parchment-dark: #ECE7DC;
+    --brass: #8B6F1F;
+    --brass-light: #B79A3D;
+    --ink: #232323;
+    --pass: #2F6B3A;
+    --pass-bg: #E7F0E6;
+    --review: #B3690F;
+    --review-bg: #FBF0DF;
+    --fail: #A63328;
+    --fail-bg: #F8E7E4;
+    --line: #D9D2C1;
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--parchment);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  header.letterhead {
+    background: var(--navy);
+    color: white;
+    padding: 22px 28px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border-bottom: 4px solid var(--brass);
+  }
+
+  .seal {
+    width: 46px; height: 46px; border-radius: 50%;
+    border: 2px solid var(--brass-light);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .seal svg { width: 26px; height: 26px; }
+
+  header .titles h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 21px;
+    margin: 0;
+    letter-spacing: 0.2px;
+  }
+  header .titles p {
+    margin: 2px 0 0;
+    font-size: 12.5px;
+    color: #C9D2E3;
+    letter-spacing: 0.3px;
+  }
+
+  main {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 28px 24px 60px;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 22px;
+    border-bottom: 2px solid var(--line);
+  }
+  .tab {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 15px;
+    padding: 11px 22px;
+    background: var(--parchment-dark);
+    border: 2px solid var(--line);
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    color: #6b6455;
+    position: relative;
+    top: 2px;
+  }
+  .tab.active {
+    background: white;
+    color: var(--navy);
+    border-color: var(--line);
+    top: 2px;
+    border-bottom: 2px solid white;
+  }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .card {
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 22px;
+    margin-bottom: 20px;
+  }
+
+  .card h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 16.5px;
+    margin: 0 0 16px;
+    color: var(--navy);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card h2 .num {
+    background: var(--navy);
+    color: white;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    display: inline-flex; align-items:center; justify-content:center;
+    font-size: 12px; font-family: 'Inter'; font-weight: 600;
+  }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 760px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  label.field-label {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #55503f;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  input[type=text], textarea {
+    width: 100%;
+    padding: 9px 11px;
+    border: 1.5px solid var(--line);
+    border-radius: 6px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    background: #FEFDFB;
+    color: var(--ink);
+  }
+  input[type=text]:focus, textarea:focus {
+    outline: 2px solid var(--brass-light);
+    outline-offset: 1px;
+    border-color: var(--brass-light);
+  }
+  textarea { resize: vertical; min-height: 70px; font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; }
+
+  .field { margin-bottom: 14px; }
+
+  .upload-zone {
+    border: 2px dashed var(--line);
+    border-radius: 8px;
+    padding: 22px;
+    text-align: center;
+    cursor: pointer;
+    color: #7a745f;
+    background: var(--parchment-dark);
+    transition: border-color .15s;
+  }
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--brass); color: var(--brass); }
+  .upload-zone input { display: none; }
+  .upload-zone .hint { font-size: 12px; margin-top: 4px; }
+
+  .preview-img {
+    max-width: 100%;
+    max-height: 260px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    display: block;
+    margin: 10px auto 0;
+  }
+
+  .btn {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 14.5px;
+    padding: 11px 24px;
+    border-radius: 7px;
+    border: none;
+    cursor: pointer;
+    color: white;
+    background: var(--navy);
+    letter-spacing: 0.2px;
+  }
+  .btn:hover { background: var(--navy-light); }
+  .btn:disabled { background: #9aa2b3; cursor: not-allowed; }
+  .btn.secondary {
+    background: transparent;
+    color: var(--navy);
+    border: 1.5px solid var(--navy);
+  }
+  .btn.secondary:hover { background: #eef0f4; }
+  .btn.small { padding: 7px 14px; font-size: 13px; }
+  .btn.danger { background: transparent; color: var(--fail); border: 1.5px solid var(--fail); }
+
+  .action-row { display: flex; gap: 10px; align-items: center; margin-top: 18px; }
+
+  /* stamp */
+  .stamp-wrap { display: flex; flex-direction: column; align-items: center; padding: 10px 0 6px; }
+  .stamp {
+    width: 128px; height: 128px;
+    border-radius: 50%;
+    border: 5px solid currentColor;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transform: rotate(-8deg) scale(0.4);
+    opacity: 0;
+    animation: stamp-in .35s ease-out forwards;
+  }
+  @keyframes stamp-in {
+    to { transform: rotate(-8deg) scale(1); opacity: 1; }
+  }
+  .stamp.pass { color: var(--pass); }
+  .stamp.review { color: var(--review); }
+  .stamp.fail { color: var(--fail); }
+  .stamp .line1 { font-size: 17px; line-height: 1.15; }
+  .stamp .line2 { font-size: 11px; font-family: 'Inter'; font-weight: 600; letter-spacing: 2px; margin-top: 3px; }
+
+  .checklist { margin-top: 10px; }
+  .check-row {
+    display: grid;
+    grid-template-columns: 26px 150px 1fr 1fr;
+    gap: 10px;
+    align-items: start;
+    padding: 10px 4px;
+    border-bottom: 1px solid var(--line);
+    font-size: 13.5px;
+  }
+  .check-row:last-child { border-bottom: none; }
+  .check-row .icon { font-size: 16px; text-align: center; padding-top: 1px; }
+  .check-row .fname { font-weight: 600; color: #55503f; padding-top: 1px;}
+  .check-row .val { font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+  .check-row .val .tag { display:block; font-family:'Inter'; font-size:10.5px; text-transform: uppercase; letter-spacing:.3px; color:#948d78; margin-bottom:2px;}
+  .check-row.pass .icon { color: var(--pass); }
+  .check-row.review .icon { color: var(--review); }
+  .check-row.fail .icon { color: var(--fail); }
+  .note {
+    font-size: 12px; color: #8a8368; margin-top: 3px; font-style: italic;
+  }
+
+  .status-pill {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .status-pill.pass { background: var(--pass-bg); color: var(--pass); }
+  .status-pill.review { background: var(--review-bg); color: var(--review); }
+  .status-pill.fail { background: var(--fail-bg); color: var(--fail); }
+  .status-pill.pending { background: #eee; color: #888; }
+
+  .batch-row {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 14px;
+    background: #FEFDFB;
+  }
+  .batch-row-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .batch-row-head .idx {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    color: var(--brass);
+  }
+  .batch-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr) auto;
+    gap: 12px;
+    align-items: end;
+  }
+  @media (max-width: 900px) { .batch-grid { grid-template-columns: 1fr 1fr; } }
+  .batch-grid .field { margin-bottom: 0; }
+  .file-chip {
+    font-size: 12px;
+    padding: 6px 10px;
+    background: var(--parchment-dark);
+    border-radius: 5px;
+    border: 1px solid var(--line);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 160px;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 30px 10px;
+    color: #948d78;
+    font-size: 13.5px;
+  }
+
+  .error-banner {
+    background: var(--fail-bg);
+    color: var(--fail);
+    border: 1px solid var(--fail);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 13px;
+    margin-top: 12px;
+  }
+
+  .loader {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid #ffffff55;
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    margin-right: 6px;
+    vertical-align: -2px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .timing {
+    font-size: 11.5px;
+    color: #948d78;
+    margin-top: 6px;
+  }
+
+  footer {
+    text-align: center;
+    font-size: 11.5px;
+    color: #a89f86;
+    padding: 20px;
+  }
+</style>
+</head>
+<body>
+
+<header class="letterhead">
+  <div class="seal">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#F7F5F0" stroke-width="1.6"><path d="M8 3h8l1 4-1 12H8L7 7z"/><path d="M8 8h8"/><path d="M9 11h6"/><path d="M9 14h6"/></svg>
+  </div>
+  <div class="titles">
+    <h1>Label Verification Assistant</h1>
+    <p>Prototype &middot; Compliance Division &middot; Not connected to COLA</p>
+  </div>
+</header>
+
+<main>
+  <div class="tabs">
+    <div class="tab active" data-tab="single">Single Check</div>
+    <div class="tab" data-tab="batch">Batch Check</div>
+  </div>
+
+  <!-- SINGLE MODE -->
+  <div class="panel active" id="panel-single">
+    <div class="grid-2">
+      <div class="card">
+        <h2><span class="num">1</span> Application Record</h2>
+        <div class="field">
+          <label class="field-label">Brand Name</label>
+          <input type="text" id="s-brand" placeholder="e.g. Old Tom Distillery">
+        </div>
+        <div class="field">
+          <label class="field-label">Class / Type</label>
+          <input type="text" id="s-class" placeholder="e.g. Kentucky Straight Bourbon Whiskey">
+        </div>
+        <div class="grid-2" style="gap:12px;">
+          <div class="field">
+            <label class="field-label">Alcohol Content</label>
+            <input type="text" id="s-abv" placeholder="e.g. 45% Alc./Vol.">
+          </div>
+          <div class="field">
+            <label class="field-label">Net Contents</label>
+            <input type="text" id="s-net" placeholder="e.g. 750 mL">
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Expected Government Warning</label>
+          <textarea id="s-warning">GOVERNMENT WARNING: (1) According to the Surgeon General, women should not drink alcoholic beverages during pregnancy because of the risk of birth defects. (2) Consumption of alcoholic beverages impairs your ability to drive a car or operate machinery, and may cause health problems.</textarea>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="num">2</span> Label Image</h2>
+        <div class="upload-zone" id="s-dropzone">
+          <div id="s-upload-prompt">
+            <div>Click to choose a label photo, or drag one here</div>
+            <div class="hint">JPG, PNG, or WEBP</div>
+          </div>
+          <img id="s-preview" class="preview-img" style="display:none;">
+          <input type="file" id="s-file" accept="image/*">
+        </div>
+        <div class="action-row">
+          <button class="btn" id="s-verify-btn" disabled>Verify Label</button>
+          <button class="btn secondary small" id="s-clear-btn" style="display:none;">Clear</button>
+        </div>
+        <div class="timing" id="s-timing"></div>
+      </div>
+    </div>
+
+    <div class="card" id="s-results" style="display:none;">
+      <h2><span class="num">3</span> Result</h2>
+      <div id="s-result-body"></div>
+    </div>
+  </div>
+
+  <!-- BATCH MODE -->
+  <div class="panel" id="panel-batch">
+    <div class="card">
+      <h2><span class="num">1</span> Shared Expected Government Warning</h2>
+      <div class="field" style="margin-bottom:0;">
+        <textarea id="b-warning">GOVERNMENT WARNING: (1) According to the Surgeon General, women should not drink alcoholic beverages during pregnancy because of the risk of birth defects. (2) Consumption of alcoholic beverages impairs your ability to drive a car or operate machinery, and may cause health problems.</textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="num">2</span> Labels in This Batch</h2>
+      <div id="batch-rows"></div>
+      <button class="btn secondary small" id="b-add-row">+ Add Another Label</button>
+    </div>
+
+    <div class="action-row">
+      <button class="btn" id="b-verify-all-btn">Verify All</button>
+      <span class="timing" id="b-timing"></span>
+    </div>
+  </div>
+
+  <div id="global-error"></div>
+</main>
+
+<footer>Standalone prototype &middot; extracted label text assists review, final compliance decisions remain with TTB staff. &middot; Built by Aqib Rahim</footer>
+
+<script>
+const MODEL_NAME = "claude-sonnet-4-6"; // vision-capable model identifier
+
+// ---------- helpers ----------
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result.split(",")[1]);
+    r.onerror = () => reject(new Error("Could not read file"));
+    r.readAsDataURL(file);
+  });
+}
+
+function normalizeText(s) {
+  return (s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, " ");
+}
+
+function normalizeWarning(s) {
+  // collapse whitespace only, keep case for exactness check
+  return (s || "").replace(/\s+/g, " ").trim();
+}
+
+function parseVolumeToMl(s) {
+  if (!s) return null;
+  const str = s.toLowerCase();
+  let m = str.match(/([\d.]+)\s*ml/);
+  if (m) return parseFloat(m[1]);
+  m = str.match(/([\d.]+)\s*(l|liter|litre)\b/);
+  if (m) return parseFloat(m[1]) * 1000;
+  m = str.match(/([\d.]+)\s*(fl\.?\s*oz|fluid ounce)/);
+  if (m) return parseFloat(m[1]) * 29.5735;
+  return null;
+}
+
+function parsePercent(s) {
+  if (!s) return null;
+  const m = String(s).match(/([\d.]+)\s*%/);
+  if (m) return parseFloat(m[1]);
+  return null;
+}
+
+async function extractLabelFields(base64, mediaType) {
+  const prompt = `You are assisting a federal alcohol label compliance review. Look at this alcohol beverage label image and extract the following fields exactly as they appear on the label. Respond with ONLY a raw JSON object, no markdown fences, no commentary, matching this schema exactly:
+
+{
+  "brand_name": string or null,
+  "class_type": string or null,
+  "alcohol_content_raw": string or null,
+  "net_contents_raw": string or null,
+  "government_warning_text": string or null,
+  "government_warning_header_all_caps": boolean,
+  "government_warning_header_bold": boolean,
+  "image_quality_issues": array of short strings (e.g. "glare", "angled", "blurry", "partially cropped") - empty array if none,
+  "notes": short string of anything unusual, or empty string
+}
+
+Rules:
+- Transcribe text exactly as printed, preserving original capitalization and punctuation, for brand_name, class_type, alcohol_content_raw, net_contents_raw, and government_warning_text.
+- government_warning_text should be the full warning statement text visible on the label, or null if none is visible.
+- If a field is not visible or not legible, use null for that field rather than guessing.
+- Do not include any text outside the JSON object.`;
+
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: MODEL_NAME,
+      max_tokens: 1000,
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "image", source: { type: "base64", media_type: mediaType, data: base64 } },
+            { type: "text", text: prompt }
+          ]
+        }
+      ]
+    })
+  });
+
+  if (!response.ok) {
+    const t = await response.text();
+    throw new Error("API error " + response.status + ": " + t.slice(0, 200));
+  }
+  const data = await response.json();
+  const textBlock = (data.content || []).find(b => b.type === "text");
+  if (!textBlock) throw new Error("No text response from model");
+  let clean = textBlock.text.trim().replace(/^```json/i, "").replace(/^```/, "").replace(/```$/, "").trim();
+  let parsed;
+  try {
+    parsed = JSON.parse(clean);
+  } catch (e) {
+    throw new Error("Could not parse model response as JSON");
+  }
+  return parsed;
+}
+
+// ---------- comparison logic ----------
+function compareFields(applied, extracted) {
+  const rows = [];
+  let hasFail = false;
+  let hasReview = false;
+
+  // Brand name
+  {
+    const a = applied.brand, e = extracted.brand_name;
+    if (!e) {
+      rows.push(mkRow("fail", "Brand Name", a, "Not detected on label", "Image unclear or field missing")); hasFail = true;
+    } else if (normalizeText(a) === normalizeText(e)) {
+      const exact = (a || "").trim() === (e || "").trim();
+      rows.push(mkRow("pass", "Brand Name", a, e, exact ? "" : "Matches (case/formatting differs)"));
+    } else {
+      rows.push(mkRow("fail", "Brand Name", a, e, "Does not match application")); hasFail = true;
+    }
+  }
+
+  // Class/Type
+  {
+    const a = applied.classType, e = extracted.class_type;
+    if (!e) {
+      rows.push(mkRow("fail", "Class / Type", a, "Not detected on label", "Image unclear or field missing")); hasFail = true;
+    } else if (normalizeText(a) === normalizeText(e)) {
+      const exact = (a || "").trim() === (e || "").trim();
+      rows.push(mkRow("pass", "Class / Type", a, e, exact ? "" : "Matches (case/formatting differs)"));
+    } else {
+      rows.push(mkRow("review", "Class / Type", a, e, "Wording differs - confirm designation is equivalent")); hasReview = true;
+    }
+  }
+
+  // ABV
+  {
+    const a = applied.abv, e = extracted.alcohol_content_raw;
+    const an = parsePercent(a), en = parsePercent(e);
+    if (!e) {
+      rows.push(mkRow("fail", "Alcohol Content", a, "Not detected on label", "Image unclear or field missing")); hasFail = true;
+    } else if (an != null && en != null && Math.abs(an - en) < 0.15) {
+      rows.push(mkRow("pass", "Alcohol Content", a, e, ""));
+    } else if (an != null && en != null) {
+      rows.push(mkRow("fail", "Alcohol Content", a, e, "Percentage does not match application")); hasFail = true;
+    } else {
+      rows.push(mkRow("review", "Alcohol Content", a, e, "Could not parse a percentage to compare numerically")); hasReview = true;
+    }
+  }
+
+  // Net contents
+  {
+    const a = applied.net, e = extracted.net_contents_raw;
+    const aMl = parseVolumeToMl(a), eMl = parseVolumeToMl(e);
+    if (!e) {
+      rows.push(mkRow("fail", "Net Contents", a, "Not detected on label", "Image unclear or field missing")); hasFail = true;
+    } else if (aMl != null && eMl != null && Math.abs(aMl - eMl) < 1) {
+      rows.push(mkRow("pass", "Net Contents", a, e, ""));
+    } else if (aMl != null && eMl != null) {
+      rows.push(mkRow("fail", "Net Contents", a, e, "Volume does not match application")); hasFail = true;
+    } else {
+      rows.push(mkRow("review", "Net Contents", a, e, "Could not parse a volume to compare numerically")); hasReview = true;
+    }
+  }
+
+  // Government warning - strict exact match required
+  {
+    const a = normalizeWarning(applied.warning);
+    const e = normalizeWarning(extracted.government_warning_text);
+    if (!extracted.government_warning_text) {
+      rows.push(mkRow("fail", "Government Warning", "(required statement)", "Not detected on label", "Warning statement missing or unreadable")); hasFail = true;
+    } else if (a === e) {
+      const capsOk = extracted.government_warning_header_all_caps !== false;
+      const boldOk = extracted.government_warning_header_bold !== false;
+      if (capsOk && boldOk) {
+        rows.push(mkRow("pass", "Government Warning", "(exact statement required)", e, ""));
+      } else {
+        let issues = [];
+        if (!capsOk) issues.push('"GOVERNMENT WARNING:" header not in all caps');
+        if (!boldOk) issues.push('header does not appear bold');
+        rows.push(mkRow("review", "Government Warning", "(exact statement required)", e, issues.join("; "))); hasReview = true;
+      }
+    } else {
+      rows.push(mkRow("fail", "Government Warning", "(exact statement required)", e, "Wording differs from required statement - exact match required")); hasFail = true;
+    }
+  }
+
+  // Image quality flag
+  if (extracted.image_quality_issues && extracted.image_quality_issues.length) {
+    rows.push(mkRow("review", "Image Quality", "-", extracted.image_quality_issues.join(", "), "Consider requesting a clearer photo")); hasReview = true;
+  }
+
+  let overall = "pass";
+  if (hasFail) overall = "fail";
+  else if (hasReview) overall = "review";
+
+  return { rows, overall };
+}
+
+function mkRow(status, name, appliedVal, labelVal, note) {
+  return { status, name, appliedVal, labelVal, note };
+}
+
+function iconFor(status) {
+  if (status === "pass") return "&#10003;";
+  if (status === "review") return "&#63;";
+  return "&#10007;";
+}
+
+function renderResultRows(rows) {
+  return rows.map(r => `
+    <div class="check-row ${r.status}">
+      <div class="icon">${iconFor(r.status)}</div>
+      <div class="fname">${r.name}</div>
+      <div class="val"><span class="tag">Application</span>${escapeHtml(r.appliedVal)}</div>
+      <div class="val"><span class="tag">Detected on Label</span>${escapeHtml(r.labelVal)}${r.note ? `<div class="note">${escapeHtml(r.note)}</div>` : ""}</div>
+    </div>
+  `).join("");
+}
+
+function stampHtml(overall) {
+  const label = overall === "pass" ? ["MATCH", "APPROVED FOR REVIEW"] : overall === "review" ? ["REVIEW", "NEEDS AGENT CHECK"] : ["MISMATCH", "FLAGGED"];
+  return `<div class="stamp-wrap"><div class="stamp ${overall}"><div class="line1">${label[0]}</div><div class="line2">${label[1]}</div></div></div>`;
+}
+
+function escapeHtml(s) {
+  if (s == null) return "";
+  return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+}
+
+function showGlobalError(msg) {
+  const el = document.getElementById("global-error");
+  el.innerHTML = `<div class="error-banner">${escapeHtml(msg)}</div>`;
+  setTimeout(() => { el.innerHTML = ""; }, 8000);
+}
+
+// ---------- tabs ----------
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+    tab.classList.add("active");
+    document.getElementById("panel-" + tab.dataset.tab).classList.add("active");
+  });
+});
+
+// ---------- single mode ----------
+let sFile = null;
+
+const sDropzone = document.getElementById("s-dropzone");
+const sFileInput = document.getElementById("s-file");
+const sPreview = document.getElementById("s-preview");
+const sPrompt = document.getElementById("s-upload-prompt");
+const sVerifyBtn = document.getElementById("s-verify-btn");
+const sClearBtn = document.getElementById("s-clear-btn");
+
+sDropzone.addEventListener("click", (e) => { if (e.target !== sFileInput) sFileInput.click(); });
+sDropzone.addEventListener("dragover", e => { e.preventDefault(); sDropzone.classList.add("drag"); });
+sDropzone.addEventListener("dragleave", () => sDropzone.classList.remove("drag"));
+sDropzone.addEventListener("drop", e => {
+  e.preventDefault();
+  sDropzone.classList.remove("drag");
+  if (e.dataTransfer.files.length) setSingleFile(e.dataTransfer.files[0]);
+});
+sFileInput.addEventListener("change", e => { if (e.target.files.length) setSingleFile(e.target.files[0]); });
+
+function setSingleFile(file) {
+  sFile = file;
+  const url = URL.createObjectURL(file);
+  sPreview.src = url;
+  sPreview.style.display = "block";
+  sPrompt.style.display = "none";
+  sVerifyBtn.disabled = false;
+  sClearBtn.style.display = "inline-block";
+}
+
+sClearBtn.addEventListener("click", () => {
+  sFile = null;
+  sPreview.style.display = "none";
+  sPrompt.style.display = "block";
+  sVerifyBtn.disabled = true;
+  sClearBtn.style.display = "none";
+  document.getElementById("s-results").style.display = "none";
+});
+
+sVerifyBtn.addEventListener("click", async () => {
+  if (!sFile) return;
+  sVerifyBtn.disabled = true;
+  sVerifyBtn.innerHTML = '<span class="loader"></span>Verifying...';
+  const resultsCard = document.getElementById("s-results");
+  const resultBody = document.getElementById("s-result-body");
+  resultsCard.style.display = "block";
+  resultBody.innerHTML = '<div class="empty-state">Reading label and comparing to application record...</div>';
+  const t0 = performance.now();
+  try {
+    const base64 = await fileToBase64(sFile);
+    const extracted = await extractLabelFields(base64, sFile.type || "image/jpeg");
+    const applied = {
+      brand: document.getElementById("s-brand").value,
+      classType: document.getElementById("s-class").value,
+      abv: document.getElementById("s-abv").value,
+      net: document.getElementById("s-net").value,
+      warning: document.getElementById("s-warning").value
+    };
+    const { rows, overall } = compareFields(applied, extracted);
+    resultBody.innerHTML = stampHtml(overall) + `<div class="checklist">${renderResultRows(rows)}</div>`;
+    const t1 = performance.now();
+    document.getElementById("s-timing").textContent = `Processed in ${((t1 - t0) / 1000).toFixed(1)}s`;
+  } catch (err) {
+    resultBody.innerHTML = `<div class="error-banner">${escapeHtml(err.message)}</div>`;
+  } finally {
+    sVerifyBtn.disabled = false;
+    sVerifyBtn.textContent = "Verify Label";
+  }
+});
+
+// ---------- batch mode ----------
+let batchRows = [];
+let batchIdCounter = 0;
+
+function addBatchRow() {
+  const id = batchIdCounter++;
+  batchRows.push({ id, brand: "", classType: "", abv: "", net: "", file: null, result: null, status: "pending" });
+  renderBatchRows();
+}
+
+function renderBatchRows() {
+  const container = document.getElementById("batch-rows");
+  if (!batchRows.length) {
+    container.innerHTML = '<div class="empty-state">No labels added yet. Click "Add Another Label" to begin.</div>';
+    return;
+  }
+  container.innerHTML = batchRows.map((row, i) => `
+    <div class="batch-row" data-id="${row.id}">
+      <div class="batch-row-head">
+        <span class="idx">Label #${i + 1}</span>
+        <span class="status-pill ${row.status}">${row.status}</span>
+      </div>
+      <div class="batch-grid">
+        <div class="field">
+          <label class="field-label">Brand Name</label>
+          <input type="text" class="b-brand" value="${escapeHtml(row.brand)}" placeholder="Brand name">
+        </div>
+        <div class="field">
+          <label class="field-label">Class / Type</label>
+          <input type="text" class="b-class" value="${escapeHtml(row.classType)}" placeholder="Class/type">
+        </div>
+        <div class="field">
+          <label class="field-label">Alcohol Content</label>
+          <input type="text" class="b-abv" value="${escapeHtml(row.abv)}" placeholder="e.g. 45%">
+        </div>
+        <div class="field">
+          <label class="field-label">Net Contents</label>
+          <input type="text" class="b-net" value="${escapeHtml(row.net)}" placeholder="e.g. 750 mL">
+        </div>
+        <div class="field">
+          <label class="field-label">Label Photo</label>
+          <label class="file-chip" style="cursor:pointer;display:inline-block;">
+            ${row.file ? escapeHtml(row.file.name) : "Choose file..."}
+            <input type="file" class="b-file" accept="image/*" style="display:none;">
+          </label>
+        </div>
+      </div>
+      <div class="checklist b-result"></div>
+      <div class="action-row" style="margin-top:10px;">
+        <button class="btn danger small b-remove">Remove</button>
+      </div>
+    </div>
+  `).join("");
+
+  // wire up events per row
+  container.querySelectorAll(".batch-row").forEach(el => {
+    const id = parseInt(el.dataset.id);
+    const row = batchRows.find(r => r.id === id);
+    el.querySelector(".b-brand").addEventListener("input", e => row.brand = e.target.value);
+    el.querySelector(".b-class").addEventListener("input", e => row.classType = e.target.value);
+    el.querySelector(".b-abv").addEventListener("input", e => row.abv = e.target.value);
+    el.querySelector(".b-net").addEventListener("input", e => row.net = e.target.value);
+    el.querySelector(".b-file").addEventListener("change", e => {
+      if (e.target.files.length) {
+        row.file = e.target.files[0];
+        renderBatchRows();
+      }
+    });
+    el.querySelector(".b-remove").addEventListener("click", () => {
+      batchRows = batchRows.filter(r => r.id !== id);
+      renderBatchRows();
+    });
+    if (row.result) {
+      el.querySelector(".b-result").innerHTML = stampHtml(row.result.overall) + renderResultRows(row.result.rows);
+    }
+  });
+}
+
+document.getElementById("b-add-row").addEventListener("click", addBatchRow);
+addBatchRow();
+
+async function processBatchRow(row) {
+  if (!row.file) {
+    row.status = "fail";
+    row.result = { overall: "fail", rows: [mkRow("fail", "Label Photo", "-", "No file selected", "Upload a label photo for this entry")] };
+    return;
+  }
+  try {
+    const base64 = await fileToBase64(row.file);
+    const extracted = await extractLabelFields(base64, row.file.type || "image/jpeg");
+    const applied = {
+      brand: row.brand,
+      classType: row.classType,
+      abv: row.abv,
+      net: row.net,
+      warning: document.getElementById("b-warning").value
+    };
+    const { rows, overall } = compareFields(applied, extracted);
+    row.result = { overall, rows };
+    row.status = overall;
+  } catch (err) {
+    row.status = "fail";
+    row.result = { overall: "fail", rows: [mkRow("fail", "Processing Error", "-", err.message, "")] };
+  }
+}
+
+document.getElementById("b-verify-all-btn").addEventListener("click", async () => {
+  if (!batchRows.length) { showGlobalError("Add at least one label before verifying."); return; }
+  const btn = document.getElementById("b-verify-all-btn");
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loader"></span>Verifying batch...';
+  const timing = document.getElementById("b-timing");
+  const t0 = performance.now();
+  batchRows.forEach(r => r.status = "pending");
+  renderBatchRows();
+
+  // limited concurrency of 3 to be respectful of rate limits while staying fast
+  const concurrency = 3;
+  let idx = 0;
+  async function worker() {
+    while (idx < batchRows.length) {
+      const myIdx = idx++;
+      await processBatchRow(batchRows[myIdx]);
+      renderBatchRows();
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, batchRows.length) }, worker));
+
+  const t1 = performance.now();
+  timing.textContent = `Batch of ${batchRows.length} processed in ${((t1 - t0) / 1000).toFixed(1)}s`;
+  btn.disabled = false;
+  btn.textContent = "Verify All";
+});
+</script>
+</body>
+</html>

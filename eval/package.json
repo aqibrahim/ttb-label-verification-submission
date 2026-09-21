@@ -1,0 +1,13 @@
+{
+  "name": "label-verify-eval",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Evaluation harness measuring extraction and verdict accuracy against a fixed set of synthetic label fixtures.",
+  "scripts": {
+    "run": "node run_eval.mjs"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  }
+}
