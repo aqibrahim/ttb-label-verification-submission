@@ -29,9 +29,10 @@ router.post("/verify", upload.single("image"), async (req, res) => {
     const base64 = processedBuffer.toString("base64");
 
     const extracted = await extractLabelFields(base64, mediaType);
+    const demoMode = Boolean(extracted._demoMode);
     const { rows, overall } = compareFields({ brand, classType, abv, net, warning }, extracted);
 
-    res.json({ overall, rows, extracted });
+    res.json({ overall, rows, extracted, demoMode });
   } catch (err) {
     console.error("Verification error:", err.message);
     res.status(502).json({ error: err.message || "Verification failed." });

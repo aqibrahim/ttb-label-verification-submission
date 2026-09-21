@@ -34,14 +34,28 @@ Rules:
 - If a field is not visible or not legible, use null for that field rather than guessing.
 - Do not include any text outside the JSON object.`;
 
-function assertConfigured() {
-  const missing = ["MODEL_API_URL", "MODEL_API_KEY", "MODEL_NAME"].filter((k) => !process.env[k]);
-  if (missing.length) {
-    throw new Error(
-      `Label-reading service is not configured. Missing environment variable(s): ${missing.join(", ")}. See server/.env.example.`
-    );
-  }
+/**
+ * True when the server has no model credentials configured. Used to serve
+ * a clearly-labeled canned response instead of failing outright, so
+ * someone who clones the repo can see the UI actually work end-to-end
+ * before deciding whether to set up a real API key.
+ */
+export function isDemoMode() {
+  return !process.env.MODEL_API_URL || !process.env.MODEL_API_KEY || !process.env.MODEL_NAME;
 }
+
+const DEMO_EXTRACTION = {
+  brand_name: "OLD TOM DISTILLERY",
+  class_type: "Kentucky Straight Bourbon Whiskey",
+  alcohol_content_raw: "45% Alc./Vol. (90 Proof)",
+  net_contents_raw: "750 mL",
+  government_warning_text:
+    "GOVERNMENT WARNING: (1) According to the Surgeon General, women should not drink alcoholic beverages during pregnancy because of the risk of birth defects. (2) Consumption of alcoholic beverages impairs your ability to drive a car or operate machinery, and may cause health problems.",
+  government_warning_header_all_caps: true,
+  government_warning_header_bold: true,
+  image_quality_issues: [],
+  notes: "This is a canned demo response - no MODEL_API_KEY is configured on this server. See server/.env.example.",
+};
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -133,7 +147,9 @@ async function requestOnce(base64Image, mediaType) {
  * @returns {Promise<object>}
  */
 export async function extractLabelFields(base64Image, mediaType) {
-  assertConfigured();
+  if (isDemoMode()) {
+    return { ...DEMO_EXTRACTION, _demoMode: true };
+  }
 
   let lastError;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {

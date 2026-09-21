@@ -145,6 +145,13 @@ export default function SingleCheck() {
             <div className="bg-fail-bg text-fail border border-fail rounded-md px-3.5 py-2.5 text-sm">{error}</div>
           ) : (
             <>
+              {result.demoMode && (
+                <div className="bg-review-bg text-review border border-review rounded-md px-3.5 py-2.5 text-sm mb-4">
+                  <strong>Demo mode:</strong> no model API key is configured on this server, so this is a canned
+                  example result, not a real reading of the uploaded photo. See{" "}
+                  <code className="font-data text-xs">server/.env.example</code>.
+                </div>
+              )}
               <Stamp overall={result.overall} />
               <div className="mt-2.5">
                 {result.rows.map((row, i) => (

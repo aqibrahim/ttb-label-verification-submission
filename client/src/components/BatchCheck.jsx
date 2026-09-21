@@ -160,6 +160,11 @@ function BatchRow({ index, row, onChange, onRemove }) {
       )}
       {row.result && (
         <div className="mt-3">
+          {row.result.demoMode && (
+            <div className="bg-review-bg text-review border border-review rounded-md px-3 py-2 text-xs mb-3">
+              <strong>Demo mode:</strong> canned example result — no model API key configured on this server.
+            </div>
+          )}
           <Stamp overall={row.result.overall} />
           {row.result.rows.map((r, i) => (
             <ChecklistRow key={i} row={r} />

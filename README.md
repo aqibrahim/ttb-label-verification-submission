@@ -2,7 +2,7 @@
 
 **Author:** Aqib Rahim
 
-*This repository is a fork of the official take-home instructions repo. The original assignment brief — stakeholder interview notes, technical requirements, and deliverables — is preserved unchanged at [ASSIGNMENT.md](ASSIGNMENT.md).*
+*This repository is a fork of the official take-home instructions repo. The original assignment brief — stakeholder interview notes, technical requirements, and deliverables — is preserved unchanged at [ASSIGNMENT.md](ASSIGNMENT.md). [DECISIONS.md](DECISIONS.md) maps specific stakeholder feedback to the exact code that addresses it.*
 
 A tool that checks whether an alcohol label photo matches the corresponding COLA application record — brand name, class/type, alcohol content, net contents, and the mandatory Government Warning statement — and flags mismatches for agent review. It's a standalone proof-of-concept and does not integrate with COLA itself.
 
@@ -93,9 +93,18 @@ cp .env.example .env
 npm start        # runs on http://localhost:4000
 ```
 
+**No API key yet?** The server runs anyway - without `MODEL_API_KEY` configured, it serves a clearly-labeled canned demo response instead of failing, so the full UI (including a real result screen) works immediately after cloning. The response and the UI both flag it explicitly as demo data. See `server/src/services/modelClient.js` (`isDemoMode`).
+
 Run the unit tests for the comparison logic:
 ```bash
 npm test
+```
+
+**Docker** (server only):
+```bash
+cd server
+docker build -t label-verify-server .
+docker run -p 4000:4000 --env-file .env label-verify-server
 ```
 
 ### 2. Client
@@ -139,7 +148,8 @@ Open the printed local URL, fill out an application record, upload a label photo
 - **Testing:** Node's built-in test runner (`node --test`) across comparison logic, validation, retry behavior (with a mocked model), and image preprocessing — 28 tests, no extra test framework dependency for something this size
 - **Evaluation:** a small standalone harness (`eval/`) that runs the real pipeline against synthetic label fixtures with known ground truth and reports extraction/verdict accuracy separately
 - **Linting/formatting:** ESLint (flat config) in both `client/` and `server/`, shared Prettier config at the repo root
-- **CI:** GitHub Actions (`.github/workflows/ci.yml`) runs lint + tests on the server and lint + build on the client, on every push and pull request
+- **CI:** GitHub Actions (`.github/workflows/ci.yml`) runs `npm audit` (fails on high/critical), lint, and tests on the server, and the same audit + lint + build on the client, on every push and pull request
+- **Containerization:** `server/Dockerfile` for a dependency-free way to run the API (needs Docker only, no local Node install)
 - **Model provider:** a hosted vision-language model, called once per label image, configured entirely through environment variables (`MODEL_API_URL`, `MODEL_API_KEY`, `MODEL_NAME`) so the provider can be swapped without touching application code
 
 ## Hardening notes

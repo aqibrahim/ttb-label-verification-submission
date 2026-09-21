@@ -117,3 +117,23 @@ test("gives up after the maximum number of attempts and surfaces the last error"
   await assert.rejects(() => extractLabelFields("base64data", "image/jpeg"));
   assert.equal(calls, 3); // MAX_ATTEMPTS
 });
+
+test("falls back to a demo response when credentials are missing, without calling fetch", async () => {
+  const savedUrl = process.env.MODEL_API_URL;
+  const savedKey = process.env.MODEL_API_KEY;
+  delete process.env.MODEL_API_URL;
+  delete process.env.MODEL_API_KEY;
+
+  global.fetch = async () => {
+    calls++;
+    throw new Error("fetch should not be called in demo mode");
+  };
+
+  const result = await extractLabelFields("base64data", "image/jpeg");
+  assert.equal(result._demoMode, true);
+  assert.equal(result.brand_name, "OLD TOM DISTILLERY");
+  assert.equal(calls, 0);
+
+  process.env.MODEL_API_URL = savedUrl;
+  process.env.MODEL_API_KEY = savedKey;
+});
