@@ -3,8 +3,6 @@
 **Author:** Aqib Rahim
 **Live deployment:** https://ttb-label-verification-six.vercel.app/
 
-*This repository is a fork of the official take-home instructions repo. The original assignment brief — stakeholder interview notes and technical requirements — is preserved unchanged at [ASSIGNMENT.md](ASSIGNMENT.md). [DECISIONS.md](DECISIONS.md) maps specific stakeholder feedback to the exact code that addresses it.*
-
 A tool that checks whether an alcohol label photo matches the corresponding COLA application record — brand name, class/type, alcohol content, net contents, and the mandatory Government Warning statement — and flags mismatches for agent review. It's a standalone proof-of-concept and does not integrate with COLA itself.
 
 The brief left the tech stack open ("free to use any programming languages, frameworks, or libraries"), so I picked a stack that reflects how I'd actually build a small internal tool for a team like this: a React frontend, a small Express API, and the label-reading step done server-side so an API credential never has to sit in the browser. Every decision below traces back to something a specific stakeholder said in the interview notes — see DECISIONS.md for the direct mapping.
